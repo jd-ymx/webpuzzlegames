@@ -30,15 +30,16 @@ export default function FeaturedSection({ games, onGameClick }: FeaturedSectionP
       
       {/* 游戏网格 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {games.map((game, index) => (
-          <GameCard 
-            key={game.id} 
-            game={game} 
-            onClick={onGameClick || undefined}
-            size={index === 0 && games.length > 1 ? 'large' : 'medium'}
-            featured={true}
-          />
-        ))}
+        {games.map((game, index) => {
+          const gameCardProps = {
+            game,
+            size: (index === 0 && games.length > 1 ? 'large' : 'medium') as 'large' | 'medium',
+            featured: true,
+            ...(onGameClick && { onClick: onGameClick })
+          }
+          
+          return <GameCard key={game.id} {...gameCardProps} />
+        })}
       </div>
 
       {/* 装饰性元素 */}

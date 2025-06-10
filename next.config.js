@@ -1,10 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  trailingSlash: true,
-  skipTrailingSlashRedirect: true,
+  // output: 'export',
+  // trailingSlash: true,
+  // skipTrailingSlashRedirect: true,
   images: {
-    unoptimized: true,
+    // unoptimized: true,
     domains: ['play2048.co', 'tetris.com', 'www.google.com', 'www.chess.com', 'sudoku.com'],
     remotePatterns: [
       {

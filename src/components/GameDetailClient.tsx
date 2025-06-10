@@ -334,7 +334,6 @@ export default function GameDetailClient({ game, relatedGames, categories }: Gam
                       <GameCard 
                         game={relatedGame}
                         size="medium"
-                        onClick={() => handleRelatedGameClick(relatedGame, index)}
                       />
                     </div>
                   ))}
