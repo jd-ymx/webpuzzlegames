@@ -6,10 +6,12 @@ interface InteractiveImageProps {
   src: string
   alt: string
   className?: string
-  onClick?: () => void
+  'data-url'?: string
+  'data-thumbnail'?: string
+  [key: string]: any
 }
 
-export default function InteractiveImage({ src, alt, className, onClick }: InteractiveImageProps) {
+export default function InteractiveImage({ src, alt, className, 'data-url': dataUrl, ...props }: InteractiveImageProps) {
   const [loaded, setLoaded] = useState(true)
 
   const handleError = () => {
@@ -17,8 +19,8 @@ export default function InteractiveImage({ src, alt, className, onClick }: Inter
   }
 
   const handleClick = () => {
-    if (onClick) {
-      onClick()
+    if (dataUrl) {
+      window.open(dataUrl, '_blank', 'noopener,noreferrer')
     }
   }
 
@@ -32,7 +34,9 @@ export default function InteractiveImage({ src, alt, className, onClick }: Inter
       alt={alt}
       className={className}
       onError={handleError}
-      onClick={handleClick}
+      onClick={dataUrl ? handleClick : undefined}
+      style={{ cursor: dataUrl ? 'pointer' : 'default' }}
+      {...props}
     />
   )
 } 

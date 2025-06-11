@@ -127,12 +127,6 @@ export default function GameDetailClient({ game, relatedGames, categories }: Gam
     router.back()
   }
 
-  // 相关游戏点击处理
-  const handleRelatedGameClick = (targetGame: Game, position: number) => {
-    GameAnalytics.clickRelatedGame(game.id, targetGame.id, position)
-    router.push(`/game/${targetGame.id}`)
-  }
-
   // 处理描述展开/收起
   const handleDescriptionToggle = () => {
     setIsDescriptionExpanded(!isDescriptionExpanded)
@@ -230,7 +224,7 @@ export default function GameDetailClient({ game, relatedGames, categories }: Gam
                           src={screenshot}
                           alt={`${game.title} screenshot ${index + 1}`}
                           className="w-full aspect-[9/16] object-cover rounded-lg bg-gray-100 transition-transform duration-200 group-hover:scale-105 cursor-pointer shadow-sm hover:shadow-md"
-                          onClick={() => window.open(screenshot, '_blank', 'noopener,noreferrer')}
+                          data-url={screenshot}
                         />
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 rounded-lg"></div>
                       </div>
@@ -369,17 +363,12 @@ export default function GameDetailClient({ game, relatedGames, categories }: Gam
                 </h2>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {relatedGames.map((relatedGame, index) => (
-                    <div
+                  {relatedGames.map((relatedGame) => (
+                    <GameCard 
                       key={relatedGame.id}
-                      onClick={() => handleRelatedGameClick(relatedGame, index)}
-                      className="cursor-pointer"
-                    >
-                      <GameCard 
-                        game={relatedGame}
-                        size="medium"
-                      />
-                    </div>
+                      game={relatedGame}
+                      size="medium"
+                    />
                   ))}
                 </div>
               </div>
