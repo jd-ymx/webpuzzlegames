@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Gamepad2, Star, Clock, Users, Monitor } from 'lucide-react'
 import { Game, Category } from '@/types'
 import GameCard from './GameCard'
+import InteractiveImage from './InteractiveImage'
 import Breadcrumb from './Breadcrumb'
 import { GameAnalytics, PerformanceMonitor, UserJourneyTracker, setupScrollTracking } from '@/utils/analytics'
 import { getCategoryStyle, getGameDescription, formatGameTags, getEnhancedGameDescriptionEn } from '@/utils/gameUtils'
@@ -20,6 +21,77 @@ export default function GameDetailClient({ game, relatedGames, categories }: Gam
   const [isPlaying, setIsPlaying] = useState(false)
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
   const [timeOnPage, setTimeOnPage] = useState(0)
+
+  // 分析相关的状态
+  const category = categories.find(cat => cat.id === game.category)
+  const visibleTags = game.tags.slice(0, 6)
+  const extraTagsCount = Math.max(0, game.tags.length - 6)
+
+  // 设置客户端事件监听器
+  useEffect(() => {
+    const handleImageClick = (e: Event) => {
+      const img = e.target as HTMLImageElement
+      const screenshot = img.dataset.screenshot
+      if (screenshot) {
+        window.open(screenshot, '_blank', 'noopener,noreferrer')
+      }
+    }
+
+    const handleImageError = (e: Event) => {
+      const img = e.target as HTMLImageElement
+      img.style.display = 'none'
+    }
+
+    // 延迟设置事件监听器，确保DOM已渲染
+    const timer = setTimeout(() => {
+      const screenshots = document.querySelectorAll('[data-screenshot]')
+      const thumbnails = document.querySelectorAll('[data-thumbnail]')
+      
+      screenshots.forEach(img => {
+        img.addEventListener('click', handleImageClick)
+        img.addEventListener('error', handleImageError)
+      })
+      
+      thumbnails.forEach(img => {
+        img.addEventListener('error', handleImageError)
+      })
+    }, 100)
+
+    // 清理函数
+    return () => {
+      clearTimeout(timer)
+      const screenshots = document.querySelectorAll('[data-screenshot]')
+      const thumbnails = document.querySelectorAll('[data-thumbnail]')
+      
+      screenshots.forEach(img => {
+        img.removeEventListener('click', handleImageClick)
+        img.removeEventListener('error', handleImageError)
+      })
+      
+      thumbnails.forEach(img => {
+        img.removeEventListener('error', handleImageError)
+      })
+    }
+  }, [game.screenshots, game.thumbnail])
+
+  // 页面效果跟踪
+  useEffect(() => {
+    // 记录页面访问
+    GameAnalytics.viewGame(game.id, game.title)
+    
+    // 设置性能监控
+    PerformanceMonitor.startMeasure('game-detail-render')
+    
+    // 设置用户行为跟踪
+    UserJourneyTracker.trackEvent('game_detail_view', { game_id: game.id })
+    
+    // 设置滚动跟踪
+    setupScrollTracking(game.id)
+    
+    return () => {
+      PerformanceMonitor.endMeasure('game-detail-render')
+    }
+  }, [game.id, game.title])
 
   // 页面停留时间追踪和分析设置
   useEffect(() => {
@@ -48,35 +120,31 @@ export default function GameDetailClient({ game, relatedGames, categories }: Gam
     }
   }, [game.id, game.title, game.category])
 
-  // 获取分类信息
-  const category = categories.find(cat => cat.id === game.category)
-
-  // 获取游戏标签
-  const { visible: visibleTags, extra: extraTagsCount } = formatGameTags(game.tags, 8)
-
-  // 处理游戏启动
+  // 游戏启动处理
   const handlePlayGame = () => {
     setIsPlaying(true)
+    GameAnalytics.startGame(game.id, game.url)
+    UserJourneyTracker.trackEvent('game_start', { 
+      game_id: game.id,
+      source: 'game_detail_page'
+    })
     
-    // 游戏启动追踪
-    GameAnalytics.clickPlayGame(game.id, game.title, timeOnPage)
-
-    // 延迟跳转确保追踪完成
+    // 模拟启动延迟
     setTimeout(() => {
       window.open(game.url, '_blank', 'noopener,noreferrer')
       setIsPlaying(false)
-    }, 200)
+    }, 1000)
   }
 
-  // 处理返回
+  // 返回处理
   const handleBack = () => {
-    GameAnalytics.clickBackButton(game.id, timeOnPage)
+    UserJourneyTracker.trackEvent('navigation_back', { from: 'game_detail' })
     router.back()
   }
 
-  // 处理相关游戏点击
+  // 相关游戏点击处理
   const handleRelatedGameClick = (targetGame: Game, position: number) => {
-    GameAnalytics.clickRelatedGame(game.id, targetGame.id, position + 1)
+    GameAnalytics.clickRelatedGame(game.id, targetGame.id, position)
     router.push(`/game/${targetGame.id}`)
   }
 
@@ -131,11 +199,10 @@ export default function GameDetailClient({ game, relatedGames, categories }: Gam
         {/* 面包屑导航 */}
         <Breadcrumb 
           items={[
-            { label: 'Game Details' },
-            { label: category?.nameEn || category?.name || game.category },
-            { label: game.title, current: true }
+            { name: 'Games', href: '/' },
+            { name: category?.nameEn || category?.name || 'Game', href: `/?category=${game.category}` },
+            { name: game.title, href: '', current: true }
           ]}
-          className="mb-6 hidden md:flex"
         />
         
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -174,17 +241,11 @@ export default function GameDetailClient({ game, relatedGames, categories }: Gam
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {game.screenshots.map((screenshot, index) => (
                       <div key={index} className="relative group">
-                        <img
+                        <InteractiveImage
                           src={screenshot}
                           alt={`${game.title} screenshot ${index + 1}`}
                           className="w-full aspect-[9/16] object-cover rounded-lg bg-gray-100 transition-transform duration-200 group-hover:scale-105 cursor-pointer shadow-sm hover:shadow-md"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none'
-                          }}
-                          onClick={() => {
-                            // 点击图片时在新窗口中打开大图
-                            window.open(screenshot, '_blank', 'noopener,noreferrer')
-                          }}
+                          onClick={() => window.open(screenshot, '_blank', 'noopener,noreferrer')}
                         />
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 rounded-lg"></div>
                       </div>
@@ -196,13 +257,11 @@ export default function GameDetailClient({ game, relatedGames, categories }: Gam
               {/* 主缩略图 (如果没有screenshots则显示) */}
               {(!game.screenshots || game.screenshots.length === 0) && game.thumbnail && (
                 <div className="relative">
-                  <img
+                  <InteractiveImage
                     src={game.thumbnail}
                     alt={game.title}
+                    data-thumbnail="true"
                     className="w-full h-48 sm:h-56 lg:h-64 object-cover rounded-lg bg-gray-100"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                    }}
                   />
                 </div>
               )}
