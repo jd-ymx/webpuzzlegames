@@ -13,6 +13,10 @@ const nextConfig = {
       },
     ],
   },
+  // Cloudflare Pages优化
+  experimental: {
+    esmExternals: false,
+  },
 }
 
 module.exports = nextConfig 
