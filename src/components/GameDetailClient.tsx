@@ -76,8 +76,8 @@ export default function GameDetailClient({ game, relatedGames, categories }: Gam
 
   // 页面效果跟踪
   useEffect(() => {
-    // 记录页面访问
-    GameAnalytics.viewGame(game.id, game.title)
+    // 记录页面访问 - 修复方法名
+    GameAnalytics.viewGameDetail(game.id, game.title, game.category)
     
     // 设置性能监控
     PerformanceMonitor.startMeasure('game-detail-render')
@@ -91,7 +91,7 @@ export default function GameDetailClient({ game, relatedGames, categories }: Gam
     return () => {
       PerformanceMonitor.endMeasure('game-detail-render')
     }
-  }, [game.id, game.title])
+  }, [game.id, game.title, game.category])
 
   // 页面停留时间追踪和分析设置
   useEffect(() => {
@@ -100,30 +100,18 @@ export default function GameDetailClient({ game, relatedGames, categories }: Gam
       setTimeOnPage(Date.now() - startTime)
     }, 1000)
 
-    // 初始化分析追踪
-    GameAnalytics.viewGameDetail(game.id, game.title, game.category)
-    
-    // 性能监控
-    const performanceMonitor = new PerformanceMonitor(game.id)
-    
-    // 用户旅程追踪
-    const journeyTracker = new UserJourneyTracker(game.id)
-    
-    // 滚动深度追踪
-    const cleanupScrollTracking = setupScrollTracking(game.id)
-
     return () => {
       clearInterval(interval)
-      cleanupScrollTracking()
       // 页面离开追踪
       GameAnalytics.exitGameDetail(game.id, Date.now() - startTime)
     }
-  }, [game.id, game.title, game.category])
+  }, [game.id])
 
   // 游戏启动处理
   const handlePlayGame = () => {
     setIsPlaying(true)
-    GameAnalytics.startGame(game.id, game.url)
+    // 修复方法名，使用clickPlayGame
+    GameAnalytics.clickPlayGame(game.id, game.title, timeOnPage)
     UserJourneyTracker.trackEvent('game_start', { 
       game_id: game.id,
       source: 'game_detail_page'
