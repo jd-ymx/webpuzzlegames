@@ -79,17 +79,19 @@ export default function GameDetailClient({ game, relatedGames, categories }: Gam
     // 记录页面访问 - 修复方法名
     GameAnalytics.viewGameDetail(game.id, game.title, game.category)
     
-    // 设置性能监控
-    PerformanceMonitor.startMeasure('game-detail-render')
+    // 设置性能监控 - 创建实例
+    const performanceMonitor = new PerformanceMonitor(game.id)
     
-    // 设置用户行为跟踪
-    UserJourneyTracker.trackEvent('game_detail_view', { game_id: game.id })
+    // 设置用户行为跟踪 - 创建实例
+    const userJourneyTracker = new UserJourneyTracker(game.id)
+    userJourneyTracker.addStep('game_detail_view', { game_id: game.id })
     
     // 设置滚动跟踪
-    setupScrollTracking(game.id)
+    const cleanupScrollTracking = setupScrollTracking(game.id)
     
     return () => {
-      PerformanceMonitor.endMeasure('game-detail-render')
+      // 清理滚动跟踪
+      cleanupScrollTracking()
     }
   }, [game.id, game.title, game.category])
 
@@ -112,11 +114,7 @@ export default function GameDetailClient({ game, relatedGames, categories }: Gam
     setIsPlaying(true)
     // 修复方法名，使用clickPlayGame
     GameAnalytics.clickPlayGame(game.id, game.title, timeOnPage)
-    UserJourneyTracker.trackEvent('game_start', { 
-      game_id: game.id,
-      source: 'game_detail_page'
-    })
-    
+
     // 模拟启动延迟
     setTimeout(() => {
       window.open(game.url, '_blank', 'noopener,noreferrer')
@@ -126,7 +124,6 @@ export default function GameDetailClient({ game, relatedGames, categories }: Gam
 
   // 返回处理
   const handleBack = () => {
-    UserJourneyTracker.trackEvent('navigation_back', { from: 'game_detail' })
     router.back()
   }
 
@@ -187,9 +184,9 @@ export default function GameDetailClient({ game, relatedGames, categories }: Gam
         {/* 面包屑导航 */}
         <Breadcrumb 
           items={[
-            { name: 'Games', href: '/' },
-            { name: category?.nameEn || category?.name || 'Game', href: `/?category=${game.category}` },
-            { name: game.title, href: '', current: true }
+            { label: 'Games', href: '/' },
+            { label: category?.nameEn || category?.name || 'Game', href: `/?category=${game.category}` },
+            { label: game.title, href: '', current: true }
           ]}
         />
         
